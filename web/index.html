@@ -81,7 +81,6 @@ async function simulate() {
   };
 
   const res = await fetch('api/simulate', {
-  const res = await fetch('/api/simulate', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   });
   const data = await res.json();

@@ -22,6 +22,11 @@ class AppHandler(BaseHTTPRequestHandler):
         normalized = cls._normalize(path)
         return normalized == endpoint or normalized.endswith(endpoint)
 
+    @classmethod
+    def _looks_like_api(cls, path: str) -> bool:
+        normalized = cls._normalize(path)
+        return normalized.startswith("/api") or "/api/" in normalized
+
     def _send_json(self, payload: dict, status: int = HTTPStatus.OK) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -59,7 +64,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self._send_json(payload)
             return
 
-        if normalized.startswith("/api"):
+        if self._looks_like_api(normalized):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
 
