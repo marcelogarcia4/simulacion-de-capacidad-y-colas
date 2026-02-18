@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulación de Capacidad y Colas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1e293b; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+    .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    h1, h2 { margin-top: 0; }
+    label { display: block; margin: 8px 0 4px; font-size: 14px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    button { width: 100%; margin-top: 12px; padding: 10px; border: none; border-radius: 8px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .kpi { background: #eef2ff; border-radius: 8px; padding: 10px; }
+    .kpi b { display: block; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 8px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    canvas { width: 100%; height: 320px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .error { color: #b91c1c; margin-top: 8px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Simulación visual de capacidad y colas</h1>
+    <div class="grid">
+      <div class="card">
+        <h2>Parámetros</h2>
+        <div class="row">
+          <div><label>Capacidad min</label><input id="capacity_min" type="number" value="2" /></div>
+          <div><label>Capacidad max</label><input id="capacity_max" type="number" value="12" /></div>
+        </div>
+        <label>Espera máxima objetivo (min)</label><input id="max_avg_wait" type="number" step="0.1" value="10" />
+        <label>Rechazo máximo objetivo (0-1)</label><input id="max_rejection_rate" type="number" step="0.01" value="0.05" />
+        <label>Tiempo medio de servicio (min)</label><input id="mean_service_minutes" type="number" step="0.1" value="22" />
+        <label>Precio por servicio (USD)</label><input id="price_per_service" type="number" step="0.1" value="18" />
+        <label>Costo por cupo/hora (USD)</label><input id="server_cost_per_hour" type="number" step="0.1" value="11.5" />
+        <label>Semilla</label><input id="seed" type="number" value="42" />
+        <button id="run">Ejecutar simulación</button>
+        <div class="error" id="error"></div>
+      </div>
+
+      <div class="card">
+        <h2>Resultado recomendado</h2>
+        <div class="kpis">
+          <div class="kpi"><span>Cupos</span><b id="kpi_servers">-</b></div>
+          <div class="kpi"><span>Espera promedio</span><b id="kpi_wait">-</b></div>
+          <div class="kpi"><span>Rechazo</span><b id="kpi_rej">-</b></div>
+          <div class="kpi"><span>Margen neto</span><b id="kpi_margin">-</b></div>
+        </div>
+        <h3>Capacidad vs Espera/Margen</h3>
+        <canvas id="chart" width="700" height="320"></canvas>
+        <table>
+          <thead><tr><th>Cupos</th><th>Espera (min)</th><th>Rechazo (%)</th><th>Margen (USD)</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+async function simulate() {
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+
+  const payload = {
+    capacity_min: Number(document.getElementById('capacity_min').value),
+    capacity_max: Number(document.getElementById('capacity_max').value),
+    max_avg_wait: Number(document.getElementById('max_avg_wait').value),
+    max_rejection_rate: Number(document.getElementById('max_rejection_rate').value),
+    mean_service_minutes: Number(document.getElementById('mean_service_minutes').value),
+    price_per_service: Number(document.getElementById('price_per_service').value),
+    server_cost_per_hour: Number(document.getElementById('server_cost_per_hour').value),
+    seed: Number(document.getElementById('seed').value)
+  };
+
+  const res = await fetch('/api/simulate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    errorEl.textContent = data.error || 'Error al simular';
+    return;
+  }
+
+  render(data.results, data.best);
+}
+
+function render(results, best) {
+  document.getElementById('kpi_servers').textContent = best.servers;
+  document.getElementById('kpi_wait').textContent = best.avg_wait_minutes.toFixed(2) + ' min';
+  document.getElementById('kpi_rej').textContent = (best.rejection_rate * 100).toFixed(2) + '%';
+  document.getElementById('kpi_margin').textContent = '$' + best.net_margin_usd.toFixed(0);
+
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = results.map(r => `<tr>
+      <td>${r.servers}</td>
+      <td>${r.avg_wait_minutes.toFixed(2)}</td>
+      <td>${(r.rejection_rate*100).toFixed(2)}</td>
+      <td>${r.net_margin_usd.toFixed(0)}</td>
+    </tr>`).join('');
+
+  drawChart(results, best.servers);
+}
+
+function drawChart(results, bestServer) {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const m = 30;
+  const xs = results.map(r => r.servers);
+  const waits = results.map(r => r.avg_wait_minutes);
+  const margins = results.map(r => r.net_margin_usd);
+
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const maxWait = Math.max(...waits) * 1.1;
+  const minMargin = Math.min(...margins) * 0.9;
+  const maxMargin = Math.max(...margins) * 1.1;
+
+  const x = v => m + (v-minX)/(maxX-minX)*(W-2*m);
+  const yw = v => H-m - (v/maxWait)*(H-2*m);
+  const ym = v => H-m - ((v-minMargin)/(maxMargin-minMargin))*(H-2*m);
+
+  ctx.strokeStyle = '#334155';
+  ctx.beginPath(); ctx.moveTo(m,m); ctx.lineTo(m,H-m); ctx.lineTo(W-m,H-m); ctx.stroke();
+
+  ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2; ctx.beginPath();
+  waits.forEach((v,i)=> i===0 ? ctx.moveTo(x(xs[i]), yw(v)) : ctx.lineTo(x(xs[i]), yw(v))); ctx.stroke();
+
+  ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2; ctx.beginPath();
+  margins.forEach((v,i)=> i===0 ? ctx.moveTo(x(xs[i]), ym(v)) : ctx.lineTo(x(xs[i]), ym(v))); ctx.stroke();
+
+  const bx = x(bestServer);
+  ctx.setLineDash([6,4]); ctx.strokeStyle = '#16a34a'; ctx.beginPath(); ctx.moveTo(bx,m); ctx.lineTo(bx,H-m); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#111827'; ctx.font = '12px Arial';
+  xs.forEach(v => ctx.fillText(v, x(v)-4, H-10));
+  ctx.fillStyle = '#dc2626'; ctx.fillText('Espera (min)', m+8, m+12);
+  ctx.fillStyle = '#2563eb'; ctx.fillText('Margen (USD)', m+8, m+26);
+}
+
+document.getElementById('run').addEventListener('click', simulate);
+window.addEventListener('load', simulate);
+</script>
+</body>
+</html>
