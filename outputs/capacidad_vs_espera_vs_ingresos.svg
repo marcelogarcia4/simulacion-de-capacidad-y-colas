@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520">
+<rect width="100%" height="100%" fill="white"/>
+<text x="480.0" y="30" text-anchor="middle" font-size="20" font-family="Arial">Capacidad vs espera vs ingresos netos</text>
+<line x1="60" y1="460" x2="900" y2="460" stroke="#333"/>
+<line x1="60" y1="60" x2="60" y2="460" stroke="#333"/>
+<line x1="900" y1="60" x2="900" y2="460" stroke="#333"/>
+<polyline fill="none" stroke="#d62728" stroke-width="3" points="60.0,96.4 144.0,207.9 228.0,255.7 312.0,340.6 396.0,353.5 480.0,400.5 564.0,417.3 648.0,436.8 732.0,457.4 816.0,455.5 900.0,456.9"/>
+<polyline fill="none" stroke="#1f77b4" stroke-width="3" points="60.0,439.3 144.0,352.6 228.0,320.7 312.0,234.1 396.0,161.2 480.0,170.3 564.0,135.0 648.0,113.3 732.0,166.9 816.0,182.8 900.0,222.7"/>
+<text x="60.0" y="480" text-anchor="middle" font-size="12">2</text>
+<text x="144.0" y="480" text-anchor="middle" font-size="12">3</text>
+<text x="228.0" y="480" text-anchor="middle" font-size="12">4</text>
+<text x="312.0" y="480" text-anchor="middle" font-size="12">5</text>
+<text x="396.0" y="480" text-anchor="middle" font-size="12">6</text>
+<text x="480.0" y="480" text-anchor="middle" font-size="12">7</text>
+<text x="564.0" y="480" text-anchor="middle" font-size="12">8</text>
+<text x="648.0" y="480" text-anchor="middle" font-size="12">9</text>
+<text x="732.0" y="480" text-anchor="middle" font-size="12">10</text>
+<text x="816.0" y="480" text-anchor="middle" font-size="12">11</text>
+<text x="900.0" y="480" text-anchor="middle" font-size="12">12</text>
+<line x1="648.0" y1="60" x2="648.0" y2="460" stroke="#2ca02c" stroke-dasharray="5,5"/>
+<text x="656.0" y="80" font-size="12" fill="#2ca02c">Recomendado: 9 cupos</text>
+<text x="70" y="55" font-size="12" fill="#d62728">Espera promedio (min)</text>
+<text x="70" y="72" font-size="12" fill="#1f77b4">Margen neto (USD)</text>
+</svg>

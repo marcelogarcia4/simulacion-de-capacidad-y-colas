@@ -1,0 +1,13 @@
+{
+  "servers": 9,
+  "arrivals": 227,
+  "served": 225,
+  "rejected": 2,
+  "rejection_rate": 0.00881057268722467,
+  "avg_wait_minutes": 6.254073486769004,
+  "p90_wait_minutes": 21.796168004859922,
+  "utilization": 0.6681852099043659,
+  "revenue_usd": 4050.0,
+  "cost_usd": 1242.0,
+  "net_margin_usd": 2808.0
+}
