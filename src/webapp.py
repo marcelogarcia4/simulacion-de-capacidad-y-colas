@@ -13,6 +13,15 @@ WEB_DIR = ROOT / "web"
 
 
 class AppHandler(BaseHTTPRequestHandler):
+    @staticmethod
+    def _normalize(path: str) -> str:
+        return path.rstrip("/") or "/"
+
+    @classmethod
+    def _matches_api(cls, path: str, endpoint: str) -> bool:
+        normalized = cls._normalize(path)
+        return normalized == endpoint or normalized.endswith(endpoint)
+
     def _send_json(self, payload: dict, status: int = HTTPStatus.OK) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -34,9 +43,9 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        normalized = parsed.path.rstrip("/") or "/"
+        normalized = self._normalize(parsed.path)
 
-        if normalized == "/api/defaults":
+        if self._matches_api(normalized, "/api/defaults"):
             payload = {
                 "arrival_profile": DEFAULT_ARRIVAL_PROFILE,
                 "hours": 12,
@@ -50,16 +59,15 @@ class AppHandler(BaseHTTPRequestHandler):
             self._send_json(payload)
             return
 
-        # Fallback: en algunos previews la URL llega con prefijos o rutas adicionales.
-        # Si no es /api, servimos la UI para evitar "Not Found".
         if normalized.startswith("/api"):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
+
         self._serve_file(WEB_DIR / "index.html")
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/simulate":
+        if not self._matches_api(parsed.path, "/api/simulate"):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
 
@@ -92,7 +100,6 @@ class AppHandler(BaseHTTPRequestHandler):
                 raise ValueError("capacity_min no puede ser mayor que capacity_max")
 
             capacities = range(capacity_min, capacity_max + 1)
-
             results = evaluate_capacities(capacities, arrival_profile, config)
             best = recommend_capacity(
                 results,
